@@ -99,7 +99,7 @@ int main()
 	// Create shaders
 	DefaultShader defaultShader = DefaultShader(ShaderCreator::CreateFromFile("assets/shaders/default.vert", "assets/shaders/default.frag"));
 
-	// Create and store geometry / metadata of mesh in GPU. VAO, FBOs and EBOs
+	// Create and store geometry / metadata of mesh in GPU. VAO, VBOs and EBOs
 	Mesh cube = Mesh();
 	cube.CreateMesh(vertices, indices, sizeof(vertices)/sizeof(vertices[0]), sizeof(indices)/sizeof(indices[0]));
 	//Mesh top = Mesh();
