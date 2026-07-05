@@ -2,6 +2,9 @@
 
 #include <stdio.h>
 #include <ctime>
+#include <thread>
+#include <mutex>
+
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -18,10 +21,6 @@
 unsigned int WINDOW_WIDTH = 1280, WINDOW_HEIGHT = 720;
 
 std::vector<Shader> shaderList;
-
-unsigned int VBO;
-unsigned int VAO;
-unsigned int EBO;
 
 Camera camera;
 
@@ -78,10 +77,36 @@ void fpsCounter() {
 	}
 }
 
+float threadFloat = 0.0f;
+std::mutex counter_mutex;
+std::atomic<bool> stop_workers = false;
+
+// This will work in a seperate thread because it seems to be quite heavy work
+void GeneratePerlinNoise() {
+	// scatter points in a grid
+
+	// define texture rez
+
+	// for each pixel measure distance to closest point in grid and write to file
+
+	// notify that the thread work is done
+
+
+
+
+
+	// just for example
+	while (!stop_workers)
+	{
+		std::this_thread::sleep_for(std::chrono::seconds(2));
+	}
+	printf("aight goodbye!");
+}
+
 int main()
 {
 	// For fps calculation
-	lastFrame = glfwGetTime();
+	lastFrame = (float)glfwGetTime();
 
 	// Create window
 	Window mainWindow = Window(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -105,6 +130,9 @@ int main()
 	//Mesh top = Mesh();
 	//top.CreateMesh(vertices, tops, sizeof(vertices) / sizeof(vertices[0]), sizeof(tops) / sizeof(tops[0]));
 
+	// Thread to generate Noise
+	std::thread noise_worker(GeneratePerlinNoise);
+
 	// Let OpenGL calculate which elements are in front of what
 	glEnable(GL_DEPTH_TEST);
 	//glDisable(GL_CULL_FACE);
@@ -114,7 +142,7 @@ int main()
 	// Main loooooop until user closes window
 	while (!glfwWindowShouldClose(mainWindow.getGLFWMainWindow()))
 	{
-		currentFrame = glfwGetTime();
+		currentFrame = (float)glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
@@ -171,6 +199,10 @@ int main()
 		camera.HandleMovement(deltaTime);
 		camera.HandleRotation();
 	}
+
+	// since the thread could be writting to a file, tell it to wrap it up and then wait for it to finish
+	stop_workers = true;
+	noise_worker.join();
 
 	return 0;
 }
