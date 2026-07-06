@@ -77,13 +77,42 @@ void fpsCounter() {
 	}
 }
 
-float threadFloat = 0.0f;
-std::mutex counter_mutex;
 std::atomic<bool> stop_workers = false;
+
+int numRowsColsDepth = 2;
+int rezolution = 1024;
+
+//struct Point
+//{
+//	glm::vec3 pos
+//};
 
 // This will work in a seperate thread because it seems to be quite heavy work
 void GeneratePerlinNoise() {
+
+	std::vector<glm::vec3> points;
+
 	// scatter points in a grid
+	for (size_t y = 0; y < numRowsColsDepth; y++)
+	{
+		for (size_t x = 0; x < numRowsColsDepth; x++)
+		{
+			for (size_t z = 0; z < numRowsColsDepth; z++)
+			{
+				// get a random offset for x,y,z between [0, 0.99]
+				glm::vec3 offset(rand() % 100 / 100.0f, rand() % 100 / 100.0f, rand() % 100 / 100.0f);
+
+				glm::vec3 point(x + offset.x, y + offset.y, z + offset.z);
+
+				points.push_back(point);
+			}
+		}
+	}
+
+	for (size_t i = 0; i < numRowsColsDepth * numRowsColsDepth * numRowsColsDepth; i++)
+	{
+		printf("My posistion is x: %f, y: %f, z: %f\n", points.at(i).x, points.at(i).y, points.at(i).z);
+	}
 
 	// define texture rez
 
@@ -91,16 +120,12 @@ void GeneratePerlinNoise() {
 
 	// notify that the thread work is done
 
-
-
-
-
 	// just for example
-	while (!stop_workers)
-	{
-		std::this_thread::sleep_for(std::chrono::seconds(2));
-	}
-	printf("aight goodbye!");
+	//while (!stop_workers)
+	//{
+	//	std::this_thread::sleep_for(std::chrono::seconds(2));
+	//}
+	printf("Noise texture generated\n");
 }
 
 int main()
@@ -126,7 +151,7 @@ int main()
 
 	// Create and store geometry / metadata of mesh in GPU. VAO, VBOs and EBOs
 	Mesh cube = Mesh();
-	cube.CreateMesh(vertices, indices, sizeof(vertices)/sizeof(vertices[0]), sizeof(indices)/sizeof(indices[0]));
+	cube.CreateMesh(vertices, indices, sizeof(vertices) / sizeof(vertices[0]), sizeof(indices) / sizeof(indices[0]));
 	//Mesh top = Mesh();
 	//top.CreateMesh(vertices, tops, sizeof(vertices) / sizeof(vertices[0]), sizeof(tops) / sizeof(tops[0]));
 
