@@ -53,5 +53,5 @@ void main()
 
     float finalDist = length(camToFrag * multiplier);
     
-    FragColor = vec4(vec3(0.6, 0.9, 0.6), 1-exp(-finalDist * 3));
+    FragColor = vec4(vec3(0.9, 0.9, 0.9), 1-exp(-finalDist * 3));
 } 
