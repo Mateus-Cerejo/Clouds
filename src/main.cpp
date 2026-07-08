@@ -4,6 +4,8 @@
 #include <ctime>
 #include <thread>
 #include <mutex>
+#include <iostream>
+#include <fstream>
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -80,12 +82,26 @@ void fpsCounter() {
 std::atomic<bool> stop_workers = false;
 
 int numRowsColsDepth = 2;
-int rezolution = 1024;
+int resolution =  64;
 
 //struct Point
 //{
 //	glm::vec3 pos
 //};
+
+float DistToClosest(int x, int y, vector<glm::vec3> points) {
+	float dist = 999999;
+
+	for (size_t i = 0; i < points.size(); i++)
+	{
+		if (abs(points[i].x - x) + abs(points[i].y - y) < dist)
+		{
+			dist = abs(points[i].x - x) + abs(points[i].y - y);
+		}
+	}
+
+	return dist;
+}
 
 // This will work in a seperate thread because it seems to be quite heavy work
 void GeneratePerlinNoise() {
@@ -97,26 +113,55 @@ void GeneratePerlinNoise() {
 	{
 		for (size_t x = 0; x < numRowsColsDepth; x++)
 		{
-			for (size_t z = 0; z < numRowsColsDepth; z++)
-			{
+			//for (size_t z = 0; z < numRowsColsDepth; z++)
+			//{
 				// get a random offset for x,y,z between [0, 0.99]
 				glm::vec3 offset(rand() % 100 / 100.0f, rand() % 100 / 100.0f, rand() % 100 / 100.0f);
 
-				glm::vec3 point(x + offset.x, y + offset.y, z + offset.z);
+				glm::vec3 point(x + offset.x, y + offset.y, /*z + offset.z*/ 0);
 
 				points.push_back(point);
-			}
+			//}
 		}
 	}
 
-	for (size_t i = 0; i < numRowsColsDepth * numRowsColsDepth * numRowsColsDepth; i++)
-	{
-		printf("My posistion is x: %f, y: %f, z: %f\n", points.at(i).x, points.at(i).y, points.at(i).z);
-	}
+	//string line;
+	//ifstream myfile("Untitled.bmp");
+	//if (myfile.is_open())
+	//{
+	//	while (getline(myfile, line))
+	//	{
+	//		cout << line << '\n';
+	//	}
+	//	myfile.close();
+	//}
+
+	//else cout << "Unable to open file";
+
+	//ofstream myfile("asdf.txt");
+	//if (myfile.is_open())
+	//{
+	//	myfile << "This is a line.\n";
+	//	myfile << "This is another line.\n";
+	//	myfile.close();
+	//}
+	//else cout << "Unable to open file";
 
 	// define texture rez
-
 	// for each pixel measure distance to closest point in grid and write to file
+
+
+	// for now just one 2d image
+	for (int y = 0; y < resolution; y++)
+	{
+		for (int x = 0; x < resolution; x++)
+		{
+			float distToClosest = DistToClosest(x, y, points);
+
+			printf("dist to closest for x: %d, y: %d, is: %f\n", x, y, distToClosest);
+		}
+	}
+
 
 	// notify that the thread work is done
 
