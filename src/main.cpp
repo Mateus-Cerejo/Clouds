@@ -5,7 +5,6 @@
 #include <thread>
 #include <mutex>
 #include <iostream>
-#include <fstream>
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -81,15 +80,16 @@ void fpsCounter() {
 
 std::atomic<bool> stop_workers = false;
 
-int numRowsColsDepth = 2;
-int resolution =  64;
+int numRowsColsDepth = 12;
+int resolution =  128;
 
 //struct Point
 //{
 //	glm::vec3 pos
 //};
 
-float DistToClosest(int x, int y, vector<glm::vec3> points) {
+// This does not calculate the direct distance between two points, it calculates by right angles but should serve the intended purpose
+float DistToClosest(float x, float y, vector<glm::vec3> points) {
 	float dist = 999999;
 
 	for (size_t i = 0; i < points.size(); i++)
@@ -103,6 +103,8 @@ float DistToClosest(int x, int y, vector<glm::vec3> points) {
 	return dist;
 }
 
+
+// TODO: improve performance by checking only adjacent points for pixels
 // This will work in a seperate thread because it seems to be quite heavy work
 void GeneratePerlinNoise() {
 
@@ -120,47 +122,106 @@ void GeneratePerlinNoise() {
 
 				glm::vec3 point(x + offset.x, y + offset.y, /*z + offset.z*/ 0);
 
+				printf("Point: x: %f, y: %f \n", point.x, point.y);
+
 				points.push_back(point);
 			//}
 		}
 	}
 
-	//string line;
-	//ifstream myfile("Untitled.bmp");
-	//if (myfile.is_open())
-	//{
-	//	while (getline(myfile, line))
-	//	{
-	//		cout << line << '\n';
-	//	}
-	//	myfile.close();
-	//}
+	// Create Bitmap file (.bmp)
+	FILE* fp = fopen("noise3d.bmp", "w+");
 
-	//else cout << "Unable to open file";
+	char tag[] = {'B', 'M'};
 
-	//ofstream myfile("asdf.txt");
-	//if (myfile.is_open())
-	//{
-	//	myfile << "This is a line.\n";
-	//	myfile << "This is another line.\n";
-	//	myfile.close();
-	//}
-	//else cout << "Unable to open file";
+	int header[] = {
+		54 + (resolution + (resolution % 4 == 0 ? 0 : 4 - resolution % 4)) * resolution * 3,																// Size of file in bytes
+		0, // Reserved stuff
+		54, // Byte offset of pixel data
+		40, // Size of DIB Header
+		resolution,																// width
+		resolution,																// height
+		0x180001, // Some stuff
+		0, // Compression algo
+		0, // Pixel data size in bytes, don't matter if compression 0
+		0x0EC3, // not sure but use example
+		0x0EC3, // not sure but use example
+		0, // Color palette stuff, don't need
+		0 // Color palette stuff, don't need
+	};
 
-	// define texture rez
-	// for each pixel measure distance to closest point in grid and write to file
+	//char bitmap[] = {
+	//	255, // Blue
+	//	0x00, // Green
+	//	0x00, // Red
+
+	//	0x00, // Blue
+	//	255, // Green
+	//	0x00, // Red
+
+	//	0, // Blue
+	//	0, // Green
+	//	255, // Red
+
+	//	0x00,  // Padding
+	//	0x00,  // Padding
+	//	0x00  // Padding
+	//};
 
 
-	// for now just one 2d image
-	for (int y = 0; y < resolution; y++)
+	char* bitmap = (char *) malloc((resolution + (resolution % 4 == 0 ? 0 : 4 - resolution % 4)) * resolution * 3 * sizeof(char));
+	int count = 0;
+
+	// Iterate every pixel and write it to the bmp file
+	for (float y = 0; y < resolution; y++)
 	{
-		for (int x = 0; x < resolution; x++)
+		for (float x = 0; x < resolution; x++)
 		{
-			float distToClosest = DistToClosest(x, y, points);
+			float distToClosest = DistToClosest((float)x / resolution * numRowsColsDepth, (float)y / resolution * numRowsColsDepth, points);
 
-			printf("dist to closest for x: %d, y: %d, is: %f\n", x, y, distToClosest);
+			int index = y * (resolution % 4 == 0? resolution : resolution + 4 - resolution % 4) * 3 + x * 3;
+
+			if (distToClosest * 255 / 2 > 255 || distToClosest * 255 / 2 < 0)
+			{
+				printf("what the helly:%d\n", (int)(distToClosest * 255 / 2));
+			}
+
+			bitmap[index] = (int)(distToClosest * 255 / 2);
+			bitmap[index + 1] = (int)(distToClosest * 255 / 2);
+			bitmap[index + 2] = (int)(distToClosest * 255 / 2);
+
+			//printf("dist to closest for x: %f, y: %f, is: %f\n", x, y, distToClosest);
+		}
+
+		for (int i = 0; i < (resolution % 4 == 0 ? 0 : 4 - resolution % 4); i++)
+		{
+			int index = (y + 1) * (resolution) * 3 + i * 3;
+			bitmap[index] = 255;
+			bitmap[index+1] = 255;
+			bitmap[index+2] = 255;
+			printf("index:%d\n", index);
+			printf("index:%d\n", index+1);
+			printf("index:%d\n", index+2);
 		}
 	}
+
+	fwrite(&tag, sizeof(tag), 1, fp);
+	fwrite(&header, sizeof(header), 1, fp);
+	fwrite(bitmap, (resolution + (resolution % 4 == 0 ? 0 : 4 - resolution % 4))* resolution * 3 * sizeof(char), 1, fp);
+	fclose(fp);
+
+	//TODO: FREE MEMORY
+
+
+
+
+
+
+
+
+
+
+
 
 
 	// notify that the thread work is done
