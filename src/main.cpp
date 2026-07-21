@@ -150,25 +150,6 @@ void GeneratePerlinNoise() {
 		0 // Color palette stuff, don't need
 	};
 
-	//char bitmap[] = {
-	//	255, // Blue
-	//	0x00, // Green
-	//	0x00, // Red
-
-	//	0x00, // Blue
-	//	255, // Green
-	//	0x00, // Red
-
-	//	0, // Blue
-	//	0, // Green
-	//	255, // Red
-
-	//	0x00,  // Padding
-	//	0x00,  // Padding
-	//	0x00  // Padding
-	//};
-
-
 	char* bitmap = (char *) malloc((resolution + (resolution % 4 == 0 ? 0 : 4 - resolution % 4)) * resolution * 3 * sizeof(char));
 	int count = 0;
 
@@ -289,8 +270,6 @@ int main()
 		//model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
 
 		model = glm::translate(model, glm::vec3(0.0f, 0.0f, -2.0f));
-		//model = glm::rotate(model, (float)glm::radians(25.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		//model = glm::rotate(model, (float)glm::radians(25.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		//model = glm::rotate(model, (float)glfwGetTime() * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 		// Define view matrix to convert to view space
@@ -298,10 +277,9 @@ int main()
 		//view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
 		//	glm::vec3(0.0f, 0.0f, 0.0f),
 		//	glm::vec3(0.0f, 1.0f, 0.0f));
-		view = camera.CalculateViewMatrix();
 
+		view = camera.CalculateViewMatrix();
 		//view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-		//view = glm::rotate(view, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 		// Define projection matrix to clip space with perspective
 		glm::mat4 proj = glm::perspective(glm::radians(70.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.01f, 1000.0f);

@@ -43,8 +43,6 @@ int Window::Initialize() {
 
 	glfwMakeContextCurrent(gLFWMainWindow);
 
-	//glViewport(0, 0, windowWidth, windowHeight);
-
 	glfwSetFramebufferSizeCallback(gLFWMainWindow, FrameBufferSizeCallback);
 
     glfwSetKeyCallback(gLFWMainWindow, HandleKeys);
