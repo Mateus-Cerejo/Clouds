@@ -5,6 +5,7 @@
 #include <thread>
 #include <mutex>
 #include <iostream>
+#include <algorithm>
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -135,12 +136,12 @@ void GeneratePerlinNoise() {
 	char tag[] = {'B', 'M'};
 
 	int header[] = {
-		54 + (resolution + (resolution % 4 == 0 ? 0 : 4 - resolution % 4)) * resolution * 3,																// Size of file in bytes
+		54 + (resolution + (resolution % 4 == 0 ? 0 : 4 - resolution % 4)) * resolution * 3, // Size of file in bytes
 		0, // Reserved stuff
 		54, // Byte offset of pixel data
 		40, // Size of DIB Header
-		resolution,																// width
-		resolution,																// height
+		resolution, // width
+		resolution, // height
 		0x180001, // Some stuff
 		0, // Compression algo
 		0, // Pixel data size in bytes, don't matter if compression 0
@@ -151,8 +152,6 @@ void GeneratePerlinNoise() {
 	};
 
 	char* bitmap = (char *) malloc((resolution + (resolution % 4 == 0 ? 0 : 4 - resolution % 4)) * resolution * 3 * sizeof(char));
-	int count = 0;
-
 	// Iterate every pixel and write it to the bmp file
 	for (float y = 0; y < resolution; y++)
 	{
@@ -161,18 +160,14 @@ void GeneratePerlinNoise() {
 			float distToClosest = DistToClosest((float)x / resolution * numRowsColsDepth, (float)y / resolution * numRowsColsDepth, points);
 
 			int index = y * (resolution % 4 == 0? resolution : resolution + 4 - resolution % 4) * 3 + x * 3;
+			
+			int value = (int)(distToClosest * 255 / 2);
+			value = (value == 10) ? 11 : value; // In windows 10 translates to 0D 0A (carriage return) wich is annoying because every other number (0-255) will be just 1 byte, so yeah here is the fix
 
-			if (distToClosest * 255 / 2 > 255 || distToClosest * 255 / 2 < 0)
-			{
-				printf("what the helly:%d\n", (int)(distToClosest * 255 / 2));
-			}
-
-			bitmap[index] = (int)(distToClosest * 255 / 2);
-			bitmap[index + 1] = (int)(distToClosest * 255 / 2);
-			bitmap[index + 2] = (int)(distToClosest * 255 / 2);
-
-			//printf("dist to closest for x: %f, y: %f, is: %f\n", x, y, distToClosest);
-		}
+			bitmap[index] = value;
+			bitmap[index + 1] = value;
+			bitmap[index + 2] = value;
+		} 
 
 		for (int i = 0; i < (resolution % 4 == 0 ? 0 : 4 - resolution % 4); i++)
 		{
@@ -187,8 +182,8 @@ void GeneratePerlinNoise() {
 	}
 
 	fwrite(&tag, sizeof(tag), 1, fp);
-	fwrite(&header, sizeof(header), 1, fp);
-	fwrite(bitmap, (resolution + (resolution % 4 == 0 ? 0 : 4 - resolution % 4))* resolution * 3 * sizeof(char), 1, fp);
+	fwrite(&header, sizeof(header), 1, fp); 
+	fwrite(bitmap, (resolution + (resolution % 4 == 0 ? 0 : 4 - resolution % 4)) * resolution * 3 * sizeof(char), 1, fp);
 	fclose(fp);
 
 	//TODO: FREE MEMORY
