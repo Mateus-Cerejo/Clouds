@@ -82,26 +82,27 @@ void fpsCounter() {
 std::atomic<bool> stop_workers = false;
 
 int numRowsColsDepth = 12;
-int resolution =  128;
+int resolution = 128;
 
 //struct Point
 //{
 //	glm::vec3 pos
 //};
 
-// This does not calculate the direct distance between two points, it calculates by right angles but should serve the intended purpose
 float DistToClosest(float x, float y, vector<glm::vec3> points) {
-	float dist = 999999;
+	float minDist = 999999;
 
 	for (size_t i = 0; i < points.size(); i++)
 	{
-		if (abs(points[i].x - x) + abs(points[i].y - y) < dist)
+		float dist = glm::length(points[i] - glm::vec3(x, y, 0));
+
+		if (dist < minDist)
 		{
-			dist = abs(points[i].x - x) + abs(points[i].y - y);
+			minDist = dist; 
 		}
 	}
 
-	return dist;
+	return minDist;
 }
 
 
@@ -119,13 +120,13 @@ void GeneratePerlinNoise() {
 			//for (size_t z = 0; z < numRowsColsDepth; z++)
 			//{
 				// get a random offset for x,y,z between [0, 0.99]
-				glm::vec3 offset(rand() % 100 / 100.0f, rand() % 100 / 100.0f, rand() % 100 / 100.0f);
+			glm::vec3 offset(rand() % 100 / 100.0f, rand() % 100 / 100.0f, rand() % 100 / 100.0f);
 
-				glm::vec3 point(x + offset.x, y + offset.y, /*z + offset.z*/ 0);
+			glm::vec3 point(x + offset.x, y + offset.y, /*z + offset.z*/ 0);
 
-				printf("Point: x: %f, y: %f \n", point.x, point.y);
+			printf("Point: x: %f, y: %f \n", point.x, point.y);
 
-				points.push_back(point);
+			points.push_back(point);
 			//}
 		}
 	}
@@ -133,7 +134,7 @@ void GeneratePerlinNoise() {
 	// Create Bitmap file (.bmp)
 	FILE* fp = fopen("noise3d.bmp", "w+");
 
-	char tag[] = {'B', 'M'};
+	char tag[] = { 'B', 'M' };
 
 	int header[] = {
 		54 + (resolution + (resolution % 4 == 0 ? 0 : 4 - resolution % 4)) * resolution * 3, // Size of file in bytes
@@ -151,7 +152,7 @@ void GeneratePerlinNoise() {
 		0 // Color palette stuff, don't need
 	};
 
-	char* bitmap = (char *) malloc((resolution + (resolution % 4 == 0 ? 0 : 4 - resolution % 4)) * resolution * 3 * sizeof(char));
+	char* bitmap = (char*)malloc((resolution + (resolution % 4 == 0 ? 0 : 4 - resolution % 4)) * resolution * 3 * sizeof(char));
 	// Iterate every pixel and write it to the bmp file
 	for (float y = 0; y < resolution; y++)
 	{
@@ -159,30 +160,30 @@ void GeneratePerlinNoise() {
 		{
 			float distToClosest = DistToClosest((float)x / resolution * numRowsColsDepth, (float)y / resolution * numRowsColsDepth, points);
 
-			int index = y * (resolution % 4 == 0? resolution : resolution + 4 - resolution % 4) * 3 + x * 3;
-			
+			int index = y * (resolution % 4 == 0 ? resolution : resolution + 4 - resolution % 4) * 3 + x * 3;
+
 			int value = (int)(distToClosest * 255 / 2);
 			value = (value == 10) ? 11 : value; // In windows 10 translates to 0D 0A (carriage return) wich is annoying because every other number (0-255) will be just 1 byte, so yeah here is the fix
 
 			bitmap[index] = value;
 			bitmap[index + 1] = value;
 			bitmap[index + 2] = value;
-		} 
+		}
 
 		for (int i = 0; i < (resolution % 4 == 0 ? 0 : 4 - resolution % 4); i++)
 		{
 			int index = (y + 1) * (resolution) * 3 + i * 3;
 			bitmap[index] = 255;
-			bitmap[index+1] = 255;
-			bitmap[index+2] = 255;
+			bitmap[index + 1] = 255;
+			bitmap[index + 2] = 255;
 			printf("index:%d\n", index);
-			printf("index:%d\n", index+1);
-			printf("index:%d\n", index+2);
+			printf("index:%d\n", index + 1);
+			printf("index:%d\n", index + 2);
 		}
 	}
 
 	fwrite(&tag, sizeof(tag), 1, fp);
-	fwrite(&header, sizeof(header), 1, fp); 
+	fwrite(&header, sizeof(header), 1, fp);
 	fwrite(bitmap, (resolution + (resolution % 4 == 0 ? 0 : 4 - resolution % 4)) * resolution * 3 * sizeof(char), 1, fp);
 	fclose(fp);
 
