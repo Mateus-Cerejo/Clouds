@@ -82,7 +82,7 @@ void fpsCounter() {
 std::atomic<bool> stop_workers = false;
 
 int numRowsColsDepth = 12;
-int resolution = 128;
+int resolution = 1024;
 
 //struct Point
 //{
@@ -108,7 +108,7 @@ float DistToClosest(float x, float y, vector<glm::vec3> points) {
 
 // TODO: improve performance by checking only adjacent points for pixels
 // This will work in a seperate thread because it seems to be quite heavy work
-void GeneratePerlinNoise() {
+void GenerateWorleyNoise() {
 
 	std::vector<glm::vec3> points;
 
@@ -162,7 +162,7 @@ void GeneratePerlinNoise() {
 
 			int index = y * (resolution % 4 == 0 ? resolution : resolution + 4 - resolution % 4) * 3 + x * 3;
 
-			int value = (int)(distToClosest * 255 / 2);
+			int value = (int)(distToClosest * 255 / 1.5);
 			value = (value == 10) ? 11 : value; // In windows 10 translates to 0D 0A (carriage return) wich is annoying because every other number (0-255) will be just 1 byte, so yeah here is the fix
 
 			bitmap[index] = value;
@@ -176,9 +176,6 @@ void GeneratePerlinNoise() {
 			bitmap[index] = 255;
 			bitmap[index + 1] = 255;
 			bitmap[index + 2] = 255;
-			printf("index:%d\n", index);
-			printf("index:%d\n", index + 1);
-			printf("index:%d\n", index + 2);
 		}
 	}
 
@@ -239,7 +236,7 @@ int main()
 	//top.CreateMesh(vertices, tops, sizeof(vertices) / sizeof(vertices[0]), sizeof(tops) / sizeof(tops[0]));
 
 	// Thread to generate Noise
-	std::thread noise_worker(GeneratePerlinNoise);
+	std::thread noise_worker(GenerateWorleyNoise);
 
 	// Let OpenGL calculate which elements are in front of what
 	glEnable(GL_DEPTH_TEST);
