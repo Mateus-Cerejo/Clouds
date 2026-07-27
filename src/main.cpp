@@ -82,12 +82,7 @@ void fpsCounter() {
 std::atomic<bool> stop_workers = false;
 
 int numRowsColsDepth = 12;
-int resolution = 1024;
-
-//struct Point
-//{
-//	glm::vec3 pos
-//};
+int resolution = 128;
 
 float DistToClosest(float x, float y, vector<glm::vec3> points) {
 	float minDist = 999999;
@@ -105,14 +100,8 @@ float DistToClosest(float x, float y, vector<glm::vec3> points) {
 	return minDist;
 }
 
-
-// TODO: improve performance by checking only adjacent points for pixels
-// This will work in a seperate thread because it seems to be quite heavy work
-void GenerateWorleyNoise() {
-
-	std::vector<glm::vec3> points;
-
-	// scatter points in a grid
+// Generate points in a grid and scatter them with a random offset
+void ScatterWorleyNoisePoints(vector<glm::vec3>* points) {
 	for (size_t y = 0; y < numRowsColsDepth; y++)
 	{
 		for (size_t x = 0; x < numRowsColsDepth; x++)
@@ -126,13 +115,47 @@ void GenerateWorleyNoise() {
 
 			printf("Point: x: %f, y: %f \n", point.x, point.y);
 
-			points.push_back(point);
+			points->push_back(point);
 			//}
 		}
 	}
+}
 
+// For every pixel calculate the distance to the closest point and write it as grayscale color in the bitmap
+void CalculateAllPixelColors(char* bitmap, vector<glm::vec3>* points) {
+	// Iterate every pixel and write it to the .bmp image in grayscale
+	for (float y = 0; y < resolution; y++)
+	{
+		for (float x = 0; x < resolution; x++)
+		{
+			float distToClosest = DistToClosest((float)x / resolution * numRowsColsDepth, (float)y / resolution * numRowsColsDepth, *points);
+
+			int value = (int)(distToClosest * 255 / 1.5); // The distance obtained is [0, ~1.4[ so multiply by 255 and divide by 1.5 to get a value between [0, 255[
+			value = (value == 10) ? 11 : value; // In windows 10 translates to 0D 0A (carriage return) wich is annoying because every other number (0-255) will be just 1 byte, so yeah here is the fix
+
+			int index = y * (resolution % 4 == 0 ? resolution : resolution + 4 - resolution % 4) * 3 + x * 3;
+
+			// The value is then converted into a grayscale pixel
+			bitmap[index] = value; // Blue byte
+			bitmap[index + 1] = value; // Green byte
+			bitmap[index + 2] = value; // Red byte
+		}
+
+		// .bmp files require each line to have a number of pixels divisible my 4, so in case our pixel resolution is not then we add empty data until it is
+		for (int i = 0; i < (resolution % 4 == 0 ? 0 : 4 - resolution % 4); i++)
+		{
+			int index = (y + 1) * (resolution) * 3 + i * 3;
+			bitmap[index] = 0;
+			bitmap[index + 1] = 0;
+			bitmap[index + 2] = 0;
+		}
+	}
+}
+
+// Write headers and bitmap data to .bmp file
+void WriteToBMPFile(char* bitmap, string fileName) {
 	// Create Bitmap file (.bmp)
-	FILE* fp = fopen("noise3d.bmp", "w+");
+	FILE* fp = fopen(fileName.c_str(), "w+");
 
 	char tag[] = { 'B', 'M' };
 
@@ -152,60 +175,41 @@ void GenerateWorleyNoise() {
 		0 // Color palette stuff, don't need
 	};
 
-	char* bitmap = (char*)malloc((resolution + (resolution % 4 == 0 ? 0 : 4 - resolution % 4)) * resolution * 3 * sizeof(char));
-	// Iterate every pixel and write it to the bmp file
-	for (float y = 0; y < resolution; y++)
-	{
-		for (float x = 0; x < resolution; x++)
-		{
-			float distToClosest = DistToClosest((float)x / resolution * numRowsColsDepth, (float)y / resolution * numRowsColsDepth, points);
-
-			int index = y * (resolution % 4 == 0 ? resolution : resolution + 4 - resolution % 4) * 3 + x * 3;
-
-			int value = (int)(distToClosest * 255 / 1.5);
-			value = (value == 10) ? 11 : value; // In windows 10 translates to 0D 0A (carriage return) wich is annoying because every other number (0-255) will be just 1 byte, so yeah here is the fix
-
-			bitmap[index] = value;
-			bitmap[index + 1] = value;
-			bitmap[index + 2] = value;
-		}
-
-		for (int i = 0; i < (resolution % 4 == 0 ? 0 : 4 - resolution % 4); i++)
-		{
-			int index = (y + 1) * (resolution) * 3 + i * 3;
-			bitmap[index] = 255;
-			bitmap[index + 1] = 255;
-			bitmap[index + 2] = 255;
-		}
-	}
-
 	fwrite(&tag, sizeof(tag), 1, fp);
 	fwrite(&header, sizeof(header), 1, fp);
 	fwrite(bitmap, (resolution + (resolution % 4 == 0 ? 0 : 4 - resolution % 4)) * resolution * 3 * sizeof(char), 1, fp);
 	fclose(fp);
+}
 
-	//TODO: FREE MEMORY
+// TODO: massivly improve performance by checking only adjacent points for pixels
+// TODO: massivly improve performance by doing this in the GPU 
+// TODO: add seamless tilling
+// TODO: FREE MEMORY
+// This will work in a seperate thread because it seems to be quite heavy work
+void GenerateWorleyNoise() {
+	std::vector<glm::vec3> points;
 
+	// Place points in a grid and offset them randomly
+	ScatterWorleyNoisePoints(&points);
 
+	// Array of pixel data for the .bmp image (3 bytes for each pixel, BlueGreenRed)
+	char* bitmap = (char*)malloc((resolution + (resolution % 4 == 0 ? 0 : 4 - resolution % 4)) * resolution * 3 * sizeof(char));
+	
+	// For every pixel calculate distance to closest point and store as color in bitmap
+	CalculateAllPixelColors(bitmap, &points);
 
-
-
-
-
-
-
-
-
-
+	// Write the header and bitmap data into the noise.bmp file
+	WriteToBMPFile(bitmap, "noise.bmp");
 
 	// notify that the thread work is done
+	printf("Noise texture generated\n");
+	
 
-	// just for example
+	// TODO: Add logic to stop mid work in case of window close
 	//while (!stop_workers)
 	//{
 	//	std::this_thread::sleep_for(std::chrono::seconds(2));
 	//}
-	printf("Noise texture generated\n");
 }
 
 int main()
