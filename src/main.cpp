@@ -80,6 +80,7 @@ void fpsCounter() {
 }
 
 std::atomic<bool> stop_workers = false;
+std::atomic<bool> noise_generated = false;
 
 int numRowsColsDepth = 12;
 int resolution = 128;
@@ -202,6 +203,7 @@ void GenerateWorleyNoise() {
 	WriteToBMPFile(bitmap, "noise.bmp");
 
 	// notify that the thread work is done
+	noise_generated.store(true);
 	printf("Noise texture generated\n");
 	
 
@@ -261,6 +263,12 @@ int main()
 		// Clear screen every frame before drawing
 		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		if (noise_generated.load())
+		{
+			// send texture to GPU
+			noise_generated.store(false);
+		}
 
 		// Define model matrix to convert to world space
 		glm::mat4 model = glm::mat4(1.0f);
