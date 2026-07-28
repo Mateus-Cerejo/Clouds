@@ -22,9 +22,10 @@
 
 unsigned int WINDOW_WIDTH = 1280, WINDOW_HEIGHT = 720;
 
-std::vector<Shader> shaderList;
-
 Camera camera;
+
+std::vector<Shader*> shaderList;
+std::vector<Mesh*> meshList;
 
 float vertices[] = {
 	 0.5f,  0.5f, 0.5f,  // front top right
@@ -58,6 +59,14 @@ unsigned int indices[] = {
 	5, 4, 0  // right
 };
 
+
+std::atomic<bool> stop_workers = false;
+std::atomic<bool> noise_generated = false;
+
+int numRowsColsDepth = 12;
+int resolution = 128;
+
+
 float lastFrame = 0.0f;
 float currentFrame = 0.0f;
 float deltaTime = 0.0f;
@@ -78,12 +87,6 @@ void fpsCounter() {
 		fps++;
 	}
 }
-
-std::atomic<bool> stop_workers = false;
-std::atomic<bool> noise_generated = false;
-
-int numRowsColsDepth = 12;
-int resolution = 128;
 
 float DistToClosest(float x, float y, vector<glm::vec3> points) {
 	float minDist = 999999;
@@ -214,6 +217,61 @@ void GenerateWorleyNoise() {
 	//}
 }
 
+// Setup and use shader and then render meshes
+void Render(glm::mat4 projectionMtx, glm::mat4 viewMtx) {
+	DefaultShader* defaultShader = dynamic_cast<DefaultShader*>(shaderList[0]);
+
+	// Use shaders and render meshes
+	defaultShader->Use();
+	int modelMtxLoc = defaultShader->GetModelMatrixLocation();
+	int viewMtxLoc = defaultShader->GetViewMatrixLocation();
+	glUniformMatrix4fv(viewMtxLoc, 1, GL_FALSE, glm::value_ptr(viewMtx));
+	int projMtxLoc = defaultShader->GetProjectionMatrixLocation();
+	glUniformMatrix4fv(projMtxLoc, 1, GL_FALSE, glm::value_ptr(projectionMtx));
+
+	int camPosLoc = defaultShader->GetCameraPosLocation();
+	glUniform3f(camPosLoc, camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
+	
+	// Render all clouds
+	for (Mesh* cloud : meshList) {
+
+		// Define model matrix to convert to world space
+		glm::mat4 model = glm::mat4(1.0f);
+
+		// TODO: Fix problems with transformations on the shader side
+		//model = glm::translate(model, glm::vec3(2, 0, -10));
+		//model = glm::rotate(model, glm::radians(5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		//model = glm::scale(model, glm::vec3(2, 4, 9));
+
+		glUniformMatrix4fv(modelMtxLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+		cloud->RenderMesh();
+	}
+	
+	// For tests
+	//float offsetX = 2;
+	//float offsetY = 2;
+	//float offsetZ = 2;
+	//for (Mesh* cloud : meshList) {
+	//	for (size_t i = 0; i < 50; i++)
+	//	{
+	//		for (size_t j = 0; j < 50; j++)
+	//		{
+	//			for (size_t o = 0; o < 50; o++)
+	//			{
+	//				// Define model matrix to convert to world space
+	//				glm::mat4 model = glm::mat4(1.0f);
+	//				model = glm::translate(model, glm::vec3(offsetX * i, offsetY * o, offsetZ * j));
+
+	//				glUniformMatrix4fv(modelMtxLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+	//				cloud->RenderMesh();
+	//			}
+	//		}
+	//	}
+	//}
+}
+
 int main()
 {
 	// For fps calculation
@@ -234,21 +292,24 @@ int main()
 
 	// Create shaders
 	DefaultShader defaultShader = DefaultShader(ShaderCreator::CreateFromFile("assets/shaders/default.vert", "assets/shaders/default.frag"));
+	shaderList.push_back(&defaultShader);
 
 	// Create and store geometry / metadata of mesh in GPU. VAO, VBOs and EBOs
-	Mesh cube = Mesh();
+	Mesh cube;
 	cube.CreateMesh(vertices, indices, sizeof(vertices) / sizeof(vertices[0]), sizeof(indices) / sizeof(indices[0]));
-	//Mesh top = Mesh();
-	//top.CreateMesh(vertices, tops, sizeof(vertices) / sizeof(vertices[0]), sizeof(tops) / sizeof(tops[0]));
+	meshList.push_back(&cube);
 
 	// Thread to generate Noise
 	std::thread noise_worker(GenerateWorleyNoise);
 
 	// Let OpenGL calculate which elements are in front of what
-	glEnable(GL_DEPTH_TEST);
-	//glDisable(GL_CULL_FACE);
+	//glEnable(GL_DEPTH_TEST);
+	//glDisable(GL_CULL_FACE); 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	// Define projection matrix to clip space with perspective
+	glm::mat4 projectionMtx = glm::perspective(glm::radians(70.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.01f, 1000.0f);
 
 	// Main loooooop until user closes window
 	while (!glfwWindowShouldClose(mainWindow.getGLFWMainWindow()))
@@ -260,48 +321,18 @@ int main()
 		// an ok fps counter
 		fpsCounter();
 
+		// If noise generated load it once
+		if (noise_generated.load())
+		{
+			// TODO: send texture to GPU
+			noise_generated.store(false);
+		}
+
 		// Clear screen every frame before drawing
 		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		if (noise_generated.load())
-		{
-			// send texture to GPU
-			noise_generated.store(false);
-		}
-
-		// Define model matrix to convert to world space
-		glm::mat4 model = glm::mat4(1.0f);
-		//model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
-
-		model = glm::translate(model, glm::vec3(0.0f, 0.0f, -2.0f));
-		//model = glm::rotate(model, (float)glfwGetTime() * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
-		// Define view matrix to convert to view space
-		glm::mat4 view;
-		//view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
-		//	glm::vec3(0.0f, 0.0f, 0.0f),
-		//	glm::vec3(0.0f, 1.0f, 0.0f));
-
-		view = camera.CalculateViewMatrix();
-		//view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-
-		// Define projection matrix to clip space with perspective
-		glm::mat4 proj = glm::perspective(glm::radians(70.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.01f, 1000.0f);
-
-		// Use shaders and render meshes
-		defaultShader.Use();
-		int modelMtxLoc = defaultShader.GetModelMatrixLocation();
-		glUniformMatrix4fv(modelMtxLoc, 1, GL_FALSE, glm::value_ptr(model));
-		int viewMtxLoc = defaultShader.GetViewMatrixLocation();
-		glUniformMatrix4fv(viewMtxLoc, 1, GL_FALSE, glm::value_ptr(view));
-		int projMtxLoc = defaultShader.GetProjectionMatrixLocation();
-		glUniformMatrix4fv(projMtxLoc, 1, GL_FALSE, glm::value_ptr(proj));
-
-		int camPosLoc = defaultShader.GetCameraPosLocation();
-		glUniform3f(camPosLoc, camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
-
-		cube.RenderMesh();
+		Render(projectionMtx, camera.CalculateViewMatrix());
 
 		// Swaps the front and back color buffer to show what was drawn. 
 		// This is done because if there was only one buffer the screen would 
