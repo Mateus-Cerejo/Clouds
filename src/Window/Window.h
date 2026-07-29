@@ -2,6 +2,8 @@
 
 #include <stdio.h>
 #include "GLFW/glfw3.h"
+#include "stb_image.h"
+#include "../InputManager/InputManager.h"
 
 class Window
 {

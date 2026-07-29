@@ -1,6 +1,4 @@
 #include "Window.h"
-#include "../InputManager/InputManager.h"
-#include "stb_image.h"
 
 Window::Window(int width, int height) {
 	windowWidth = width;
