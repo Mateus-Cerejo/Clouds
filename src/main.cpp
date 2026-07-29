@@ -21,6 +21,7 @@
 #include "DefaultShader/DefaultShader.h"
 #include "Mesh/Mesh.h"
 #include "Camera/Camera.h"
+#include "Texture/Texture.h"
 
 unsigned int WINDOW_WIDTH = 1280, WINDOW_HEIGHT = 720;
 
@@ -28,24 +29,57 @@ Camera camera;
 
 std::vector<Shader*> shaderList;
 std::vector<Mesh*> meshList;
+std::vector<Texture*> textureList;
 
 float vertices[] = {
-	 0.5f,  0.5f, 0.5f,  // front top right
-	 0.5f, -0.5f, 0.5f,  // front bottom right
-	-0.5f, -0.5f, 0.5f,  // front bottom left
-	-0.5f, 0.5f, 0.5f,    // front top left
+	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+	 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 
-	0.5f,  0.5f, -0.5f,  // back top right
-	 0.5f, -0.5f, -0.5f,  // back bottom right
-	-0.5f, -0.5f, -0.5f,  // back bottom left
-	-0.5f, 0.5f, -0.5f    // back top left
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+	-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
 unsigned int indices[] = {
 	0, 1, 3, // front
-	3, 2, 1, // front
+	3, 1, 2, // front
 
-	3, 0, 4, // top
+	3, 4, 0, // top
 	3, 7, 4, // top
 
 	4, 5, 7, // back
@@ -247,6 +281,8 @@ void Render(glm::mat4 projectionMtx, glm::mat4 viewMtx) {
 
 		glUniformMatrix4fv(modelMtxLoc, 1, GL_FALSE, glm::value_ptr(model));
 
+		textureList[0]->UseTexture();
+
 		cloud->RenderMesh();
 	}
 	
@@ -301,12 +337,16 @@ int main()
 	cube.CreateMesh(vertices, indices, sizeof(vertices) / sizeof(vertices[0]), sizeof(indices) / sizeof(indices[0]));
 	meshList.push_back(&cube);
 
+	Texture noiseTex = Texture("noise2d.bmp");
+	noiseTex.LoadTexture(GL_BGR);
+	textureList.push_back(&noiseTex);
+
 	// Thread to generate Noise
 	std::thread noise_worker(GenerateWorleyNoise);
 
 	// Let OpenGL calculate which elements are in front of what
 	//glEnable(GL_DEPTH_TEST);
-	//glDisable(GL_CULL_FACE); 
+	glDisable(GL_CULL_FACE); 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
