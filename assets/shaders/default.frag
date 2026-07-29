@@ -54,9 +54,10 @@ float getFragDensity()
 //        finalDist += (1-texture(noiseTexture, TexCoord).x) * 0.01;
 //    }
 //
+
     if(finalDist < 0.4){
         finalDist = 1-exp(finalDist);
-    } else if(finalDist > 0.99){
+    } else if(finalDist > 1){
         finalDist = 1;
     }
 
