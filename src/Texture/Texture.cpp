@@ -40,8 +40,11 @@ bool Texture::LoadTexture(GLint imageFormat)
 
 void Texture::UseTexture()
 {
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, textureID);
+	if (textureID != 0)
+	{
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, textureID);
+	}
 }
 
 void Texture::ClearTexture()

@@ -241,6 +241,8 @@ void GenerateWorleyNoise() {
 	// Write the header and bitmap data into the noise.bmp file
 	WriteToBMPFile(bitmap, "noise.bmp");
 
+	free(bitmap);
+
 	// notify that the thread work is done
 	noise_generated.store(true);
 	printf("Noise texture generated\n");
@@ -337,8 +339,7 @@ int main()
 	cube.CreateMesh(vertices, indices, sizeof(vertices) / sizeof(vertices[0]), sizeof(indices) / sizeof(indices[0]));
 	meshList.push_back(&cube);
 
-	Texture noiseTex = Texture("noise2d.bmp");
-	noiseTex.LoadTexture(GL_BGR);
+	Texture noiseTex = Texture("noise.bmp");
 	textureList.push_back(&noiseTex);
 
 	// Thread to generate Noise
@@ -366,7 +367,7 @@ int main()
 		// If noise generated load it once
 		if (noise_generated.load())
 		{
-			// TODO: send texture to GPU
+			noiseTex.LoadTexture(GL_BGR);
 			noise_generated.store(false);
 		}
 
