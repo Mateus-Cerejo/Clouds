@@ -21,7 +21,7 @@ link_directories (
 
 add_executable (Clouds)
 
-target_sources (Clouds PRIVATE src/main.cpp "src/Window/Window.cpp" "external/GLAD/src/glad.c" "src/InputManager/InputManager.cpp" "src/ShaderCreator/ShaderCreator.cpp" "src/Shader/Shader.cpp" "src/DefaultShader/DefaultShader.cpp" "src/Mesh/Mesh.cpp" "src/Camera/Camera.cpp" "src/stb_image.cpp" "src/Texture/Texture.cpp")
+target_sources (Clouds PRIVATE src/main.cpp "src/Window/Window.cpp" "external/GLAD/src/glad.c" "src/InputManager/InputManager.cpp" "src/ShaderCreator/ShaderCreator.cpp" "src/Shader/Shader.cpp" "src/DefaultShader/DefaultShader.cpp" "src/Mesh/Mesh.cpp" "src/Camera/Camera.cpp" "src/stb_image.cpp" "src/Texture/Texture.cpp" "src/Cloud/Cloud.cpp")
 
 target_link_libraries (Clouds
     glfw3

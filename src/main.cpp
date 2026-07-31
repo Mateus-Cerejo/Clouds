@@ -22,6 +22,7 @@
 #include "Mesh/Mesh.h"
 #include "Camera/Camera.h"
 #include "Texture/Texture.h"
+#include "Cloud/Cloud.h"
 
 unsigned int WINDOW_WIDTH = 1280, WINDOW_HEIGHT = 720;
 
@@ -29,8 +30,10 @@ Camera camera;
 
 std::vector<Shader*> shaderList;
 std::vector<Mesh*> meshList;
+std::vector<Cloud*> cloudList;
 std::vector<Texture*> textureList;
 
+// TODO: remove this from main
 float vertices[] = {
 	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 	 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
@@ -74,27 +77,6 @@ float vertices[] = {
 	-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
 	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
-
-unsigned int indices[] = {
-	0, 1, 3, // front
-	3, 1, 2, // front
-
-	3, 4, 0, // top
-	3, 7, 4, // top
-
-	4, 5, 7, // back
-	7, 6, 5, // back
-
-	2, 1, 5, // bottom
-	2, 5, 6, // bottom
-
-	3, 2, 6, // left
-	6, 7, 3, // left
-
-	0, 1, 5, // right
-	5, 4, 0  // right
-};
-
 
 std::atomic<bool> stop_workers = false;
 std::atomic<bool> noise_generated = false;
@@ -224,7 +206,6 @@ void WriteToBMPFile(char* bitmap, string fileName) {
 // TODO: massivly improve performance by checking only adjacent points for pixels
 // TODO: massivly improve performance by doing this in the GPU 
 // TODO: add seamless tilling
-// TODO: FREE MEMORY
 // This will work in a seperate thread because it seems to be quite heavy work
 void GenerateWorleyNoise() {
 	std::vector<glm::vec3> points;
@@ -259,8 +240,9 @@ void GenerateWorleyNoise() {
 void Render(glm::mat4 projectionMtx, glm::mat4 viewMtx) {
 	DefaultShader* defaultShader = dynamic_cast<DefaultShader*>(shaderList[0]);
 
-	// Use shaders and render meshes
+	// Use cloud shader
 	defaultShader->Use();
+
 	int modelMtxLoc = defaultShader->GetModelMatrixLocation();
 	int viewMtxLoc = defaultShader->GetViewMatrixLocation();
 	glUniformMatrix4fv(viewMtxLoc, 1, GL_FALSE, glm::value_ptr(viewMtx));
@@ -271,7 +253,7 @@ void Render(glm::mat4 projectionMtx, glm::mat4 viewMtx) {
 	glUniform3f(camPosLoc, camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
 	
 	// Render all clouds
-	for (Mesh* cloud : meshList) {
+	for (Cloud* cloud : cloudList) {
 
 		// Define model matrix to convert to world space
 		glm::mat4 model = glm::mat4(1.0f);
@@ -282,22 +264,34 @@ void Render(glm::mat4 projectionMtx, glm::mat4 viewMtx) {
 		//model = glm::scale(model, glm::vec3(2, 4, 9));
 
 		glUniformMatrix4fv(modelMtxLoc, 1, GL_FALSE, glm::value_ptr(model));
+		
+		textureList[0]->UseTexture();
+
+		cloud->Render();
+	}
+
+	// Render other stuff
+	for (Mesh* mesh : meshList) {
+
+		// Define model matrix to convert to world space
+		glm::mat4 model = glm::mat4(1.0f);
+		glUniformMatrix4fv(modelMtxLoc, 1, GL_FALSE, glm::value_ptr(model));
 
 		textureList[0]->UseTexture();
 
-		cloud->RenderMesh();
+		mesh->RenderMesh();
 	}
-	
+
 	// For tests
 	//float offsetX = 2;
 	//float offsetY = 2;
 	//float offsetZ = 2;
-	//for (Mesh* cloud : meshList) {
-	//	for (size_t i = 0; i < 50; i++)
+	//for (Cloud* cloud : cloudList) {
+	//	for (size_t i = 0; i < 10; i++)
 	//	{
-	//		for (size_t j = 0; j < 50; j++)
+	//		for (size_t j = 0; j < 10; j++)
 	//		{
-	//			for (size_t o = 0; o < 50; o++)
+	//			for (size_t o = 0; o < 10; o++)
 	//			{
 	//				// Define model matrix to convert to world space
 	//				glm::mat4 model = glm::mat4(1.0f);
@@ -305,7 +299,7 @@ void Render(glm::mat4 projectionMtx, glm::mat4 viewMtx) {
 
 	//				glUniformMatrix4fv(modelMtxLoc, 1, GL_FALSE, glm::value_ptr(model));
 
-	//				cloud->RenderMesh();
+	//				cloud->Render();
 	//			}
 	//		}
 	//	}
@@ -334,20 +328,19 @@ int main()
 	DefaultShader defaultShader = DefaultShader(ShaderCreator::CreateFromFile("assets/shaders/default.vert", "assets/shaders/default.frag"));
 	shaderList.push_back(&defaultShader);
 
-	// Create and store geometry / metadata of mesh in GPU. VAO, VBOs and EBOs
-	Mesh cube;
-	cube.CreateMesh(vertices, indices, sizeof(vertices) / sizeof(vertices[0]), sizeof(indices) / sizeof(indices[0]));
-	meshList.push_back(&cube);
-
 	Texture noiseTex = Texture("noise.bmp");
 	textureList.push_back(&noiseTex);
+
+	// Create and store geometry / metadata of mesh in GPU. VAO, VBOs and EBOs
+	Cloud cloud1 = Cloud(vertices, sizeof(vertices) / sizeof(vertices[0]));
+	cloudList.push_back(&cloud1);
 
 	// Thread to generate Noise
 	std::thread noise_worker(GenerateWorleyNoise);
 
 	// Let OpenGL calculate which elements are in front of what
 	//glEnable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE); 
+	//glDisable(GL_CULL_FACE); 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
