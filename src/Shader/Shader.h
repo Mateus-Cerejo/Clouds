@@ -15,5 +15,5 @@ public:
 
 protected:
     GLuint programID;
-
+    float uniformPointLightPosition;
 };

@@ -10,7 +10,7 @@ void DefaultShader::Use()
 
 	glUseProgram(programID);
 
-	glUniform4f(vertexColorLocation, 0.7f, 0.7f, 0.7f, 1.0f);
+	glUniform3f(vertexColorLocation, 0.7f, 0.7f, 0.7f);
 }
 
 int DefaultShader::GetModelMatrixLocation()

@@ -2,6 +2,7 @@
 
 Shader::Shader(GLuint shaderID) {
 	this->programID = shaderID;
+	uniformPointLightPosition = glGetUniformLocation(shaderID, "pl_position");
 }
 
 void Shader::Use()

@@ -23,6 +23,7 @@
 #include "Camera/Camera.h"
 #include "Texture/Texture.h"
 #include "Cloud/Cloud.h"
+#include "PointLight/PointLight.h"
 
 unsigned int WINDOW_WIDTH = 1280, WINDOW_HEIGHT = 720;
 
@@ -32,6 +33,8 @@ std::vector<Shader*> shaderList;
 std::vector<Mesh*> meshList;
 std::vector<Cloud*> cloudList;
 std::vector<Texture*> textureList;
+
+PointLight pointLight;
 
 // TODO: remove this from main
 float vertices[] = {
@@ -286,21 +289,20 @@ void Render(glm::mat4 projectionMtx, glm::mat4 viewMtx) {
 	//float offsetX = 2;
 	//float offsetY = 2;
 	//float offsetZ = 2;
-	//for (Cloud* cloud : cloudList) {
-	//	for (size_t i = 0; i < 10; i++)
+	//Cloud* cloud = cloudList[0];
+	//for (size_t i = 0; i < 10; i++)
+	//{
+	//	for (size_t j = 0; j < 10; j++)
 	//	{
-	//		for (size_t j = 0; j < 10; j++)
+	//		for (size_t o = 0; o < 10; o++)
 	//		{
-	//			for (size_t o = 0; o < 10; o++)
-	//			{
-	//				// Define model matrix to convert to world space
-	//				glm::mat4 model = glm::mat4(1.0f);
-	//				model = glm::translate(model, glm::vec3(offsetX * i, offsetY * o, offsetZ * j));
+	//			// Define model matrix to convert to world space
+	//			glm::mat4 model = glm::mat4(1.0f);
+	//			model = glm::translate(model, glm::vec3(offsetX * i, offsetY * o, offsetZ * j));
 
-	//				glUniformMatrix4fv(modelMtxLoc, 1, GL_FALSE, glm::value_ptr(model));
+	//			glUniformMatrix4fv(modelMtxLoc, 1, GL_FALSE, glm::value_ptr(model));
 
-	//				cloud->Render();
-	//			}
+	//			cloud->Render();
 	//		}
 	//	}
 	//}

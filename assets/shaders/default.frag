@@ -5,11 +5,15 @@ in vec2 TexCoord;
 
 out vec4 FragColor;
 
+uniform vec3 baseColor;
 uniform vec3 cameraPos;
 uniform sampler2D noiseTexture;
+uniform float pl_intensity;
+uniform vec3 pl_color;
+uniform vec3 pl_position;
 
 // Measures the distance that the vector from the camera to the fragPos would travel inside the mesh if extended indefinitely
-float getFragDensity()
+float calcFragDensity()
 {
     vec3 camToFrag = normalize(fragPos - cameraPos);
 
@@ -48,12 +52,11 @@ float getFragDensity()
     float multiplier = min(min(xSteps, ySteps), zSteps);
 
     float finalDist = length(camToFrag * multiplier) + ((1-texture(noiseTexture, TexCoord).x) * 0.3);
-//
+
 //    float temp = finalDist;
 //    for(float i = 0; i < temp; i += 0.01){
 //        finalDist += (1-texture(noiseTexture, TexCoord).x) * 0.01;
 //    }
-//
 
     if(finalDist < 0.4){
         finalDist = 1-exp(finalDist);
@@ -64,8 +67,23 @@ float getFragDensity()
     return finalDist;
 }
 
+vec3 calcPointLight()
+{
+    vec3 testPos = vec3(1, 1, 0);
+    vec3 testColor = vec3(0.1, 0.1, 0.9);
+    float testInten = 1;
+
+    float dist = distance(fragPos, testPos);
+
+    return testColor * testInten / exp(dist);
+}
+
 void main()
 {
-    float density = getFragDensity();
-    FragColor = vec4(vec3(0.9, 0.9, 0.9), 1-exp(-density * 1));
+    vec3 finalColor = baseColor;
+    finalColor += calcPointLight();
+
+    float finalDensity = 1-exp(-calcFragDensity() * 1);
+
+    FragColor = vec4(finalColor, finalDensity);
 } 
